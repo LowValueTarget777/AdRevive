@@ -4,7 +4,7 @@
 
 ## 下载与安装
 
-在 GitHub Releases 或 Nexus Mods 的 Files 中选一份。两份都附有可以独立打开的小游戏，安装 MOD 时只需要复制压缩包中的 `platform` 文件夹。
+在 GitHub Releases 或 Nexus Mods 的 Files 中按下表选一份。安装时复制压缩包中的 `platform` 文件夹。
 
 | 你的游戏目录 | 下载文件 |
 | --- | --- |
@@ -28,7 +28,7 @@
 
 ## 独立试玩
 
-发布包中双击 `ADgame/index.html`。源码仓库中双击 `ADgame/dist/index.html`，也可以用 Node.js 运行开发版。浏览器进度和 MOD 进度分别保存。[小游戏操作与构建说明](ADgame/README.md)
+从 GitHub 下载并解压源码，双击 `ADgame/dist/index.html` 即可离线试玩，也可以用 Node.js 运行开发版。浏览器进度和 MOD 进度分别保存。[小游戏操作与构建说明](ADgame/README.md)
 
 ## 从源码构建
 

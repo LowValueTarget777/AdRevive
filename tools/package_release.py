@@ -60,7 +60,6 @@ def make_archives(temp, binary):
     if Path("dwmapi.dll") not in runtime or Path("ue4ss/UE4SS.dll") not in runtime:
         raise ValueError("Loader missing from clean staging directory")
 
-    standalone = (ROOT / "ADgame/dist/index.html").read_bytes()
     notices = (ROOT / "THIRD-PARTY-NOTICES.txt").read_bytes()
     bundles = []
     for full in (True, False):
@@ -74,12 +73,10 @@ def make_archives(temp, binary):
                  "3. 把解压出的 platform 文件夹复制到游戏根目录，合并同名文件夹。\n"
                  "4. 确认 platform/steam/ue4ss/Mods/AdRevive/Scripts/main.lua 存在，从 Steam 启动游戏。\n"
                  f"5. 在 platform/steam/ue4ss/UE4SS.log 查找本次启动的 [AdRevive] loaded v{version}。\n\n"
-                 "离线试玩：直接打开本包的 ADgame/index.html。\n"
                  "卸载 MOD：退出游戏并移除 platform/steam/ue4ss/Mods/AdRevive。小游戏进度保存在 %LOCALAPPDATA%/PBZ/AdRevive。\n"
                  "游戏角色和武器图鉴素材来自《影之刃零》BWIKI。https://wiki.biligame.com/yingzhiren/\n")
         with zipfile.ZipFile(temp / name, "w") as archive:
             zip_entry(archive, "安装说明.txt", guide.replace("\n", "\r\n").encode("utf-8-sig"))
-            zip_entry(archive, "ADgame/index.html", standalone)
             zip_entry(archive, "THIRD-PARTY-NOTICES.txt", notices)
             for rel, data in sorted((runtime if full else mod_files).items()):
                 zip_entry(archive, STEAM / rel, data)
