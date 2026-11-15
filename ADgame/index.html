@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#141710"><link rel="icon" href="data:,">
+  <title>破阵 · 黑松渡</title>
+</head>
+<body>
+  <main id="stage" tabindex="-1" aria-label="黑松渡战场。移动鼠标、拨动手柄左摇杆、按 A / D 或左右方向键均可横移。触屏可拖动，Esc 暂停。">
+    <div id="game"></div>
+    <div class="ad-controls">
+      <div class="clock" role="timer" aria-label="广告剩余"><span>广告剩余</span><time id="time">00:30</time></div>
+      <button id="boss-vip" class="vip" type="button" aria-label="给BOSS充值VIP跳过广告" hidden>
+        <small>给BOSS</small>
+        <strong>充值VIP跳过广告</strong>
+        <span id="vip-hint" class="vip-hint" hidden>长按 <b id="vip-key"></b></span>
+      </button>
+    </div>
+    <button id="pause" class="pause" title="暂停（Esc）" aria-label="暂停">Ⅱ</button>
+    <div class="hud" aria-label="战况">
+      <span>气血 <b id="health">100</b></span><span>队友 <b id="allies">0</b></span><span>武器 <b id="gear">0</b></span><span>击破 <b id="kills">0</b></span>
+    </div>
+    <div id="notice" role="status"></div>
+    <div id="overlay" hidden><section class="result"><h1 id="result-title"></h1><p id="result-info"></p><button id="result-action"></button></section></div>
+    <button id="close-ad" type="button" hidden>关闭广告</button>
+  </main>
+  <script type="module" src="/src/main.ts"></script>
+</body>
+</html>

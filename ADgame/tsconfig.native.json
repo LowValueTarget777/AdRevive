@@ -1,0 +1,11 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {"rootDir": ".", "outDir": "../Mods/AdRevive/Scripts"},
+  "tstl": {
+    "luaTarget": "5.3",
+    "noImplicitSelf": true,
+    "luaBundle": "adworld.lua",
+    "luaBundleEntry": "./native.ts"
+  },
+  "include": ["native.ts"]
+}

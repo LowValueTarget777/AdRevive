@@ -1,0 +1,21 @@
+# Local build and publication output
+/dist/
+/backups/
+node_modules/
+.playwright-cli/
+output/
+__pycache__/
+*.pyc
+*.tsbuildinfo
+*.log
+*.zip
+*.exe
+*.dll
+ADgame/素材库/
+ADgame/src/assets/roles/
+.env
+.env.*
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

@@ -1,0 +1,26 @@
+:root{color-scheme:dark;font-family:"STKaiti","KaiTi","Microsoft YaHei",serif;color:#f4e5c8;background:#131611}
+#close-ad{position:absolute;top:1%;right:1.4%;z-index:4;padding:5px 10px;border:1px solid #83745c;background:#292c23ed}
+#stage:has(#close-ad:not([hidden])) .pause{left:1.4%;right:auto}
+*{box-sizing:border-box}body{margin:0;min-height:100vh;min-height:100dvh;display:grid;place-items:center;background:radial-gradient(ellipse at center,#313329,#131611 76%)}
+#stage{position:relative;width:min(100vw,calc(100vh * 620 / 765),760px);width:min(100vw,calc(100dvh * 620 / 765),760px);aspect-ratio:620/765;overflow:hidden;outline:0;touch-action:none;background:#d7ceb4;box-shadow:0 0 0 1px #a48c60,0 12px 50px #0008}
+#game,#game canvas{display:block;width:100%!important;height:100%!important}
+.ad-controls{position:absolute;z-index:1;inset:0 0 auto;display:flex;flex-direction:column;align-items:center;gap:3px;pointer-events:none}
+.clock{display:grid;min-width:20%;justify-items:center;padding:.3em 1em .4em;line-height:1;background:#242620f7;box-shadow:inset 0 -2px #bd9966;color:#f8dca0;font-size:clamp(13px,2.2vh,21px)}
+.clock span{font-size:.64em;color:#dfc7a3;letter-spacing:.2em}.clock time{font:bold 1.72em/1.08 Consolas,monospace;font-variant-numeric:tabular-nums}.clock.urgent{background:#732f24;color:#fff0c6}
+button{font:inherit;cursor:pointer;color:inherit}button:focus-visible{outline:2px solid #eec385;outline-offset:2px}.pause{position:absolute;top:1%;right:1.4%;border:1px solid #83745c;background:#292c23cd;width:30px;height:31px;font:17px Georgia,serif}
+.vip{pointer-events:auto;display:grid;justify-items:center;gap:1px;padding:3px 12px 5px;border:1px solid #c49b62;border-radius:3px;background:linear-gradient(#89412e,#653023);box-shadow:0 2px 4px #30241855;white-space:nowrap}
+.vip small{font:5px/1 "Microsoft YaHei",sans-serif;color:#b68d75;opacity:.18}
+.vip strong{font-size:clamp(14px,2.1vh,19px);line-height:1.1;color:#ffe2ac}
+.vip{position:relative}
+.vip-hint{position:absolute;left:calc(100% + 5px);top:50%;transform:translateY(-50%);display:flex;align-items:center;gap:4px;padding:3px 5px;background:#292c23ed;color:#f0dac0;font:11px/1.2 "Microsoft YaHei",sans-serif;pointer-events:none}
+.vip-hint b{display:grid;place-items:center;min-width:16px;height:16px;padding:0 2px;border:1px solid #f1b9a2;border-radius:12px;background:#532c28;color:#ffcfb3;font:bold 12px/1 Arial,sans-serif}
+.vip:has(.vip-hint:not([hidden]))::after{content:"";position:absolute;bottom:0;left:0;width:var(--hold,0%);height:3px;background:#ffcf70;border-radius:2px}
+.vip.hold-complete{box-shadow:inset 0 0 0 1px #ffcf70}
+.vip:hover{border-color:#f4cb89}.vip:active{transform:translateY(1px);background:#572b20;box-shadow:inset 0 1px 3px #30170f}
+.hud{position:absolute;bottom:0;left:0;right:0;display:flex;justify-content:space-evenly;align-items:center;min-height:3.5%;background:#25281fdd;color:#ddc8a2;pointer-events:none;font-size:clamp(11px,1.7vh,15px)}.hud b{color:#fff0d0;font-family:Consolas,monospace}.hud span:first-child b{color:#f4ad87}
+#notice{position:absolute;left:50%;bottom:17%;transform:translateX(-50%);max-width:94%;white-space:nowrap;padding:5px 10px;background:#29281ef0;border:1px solid #aa9161;pointer-events:none;font-size:clamp(12px,1.7vh,16px)}#notice:empty,[hidden]{display:none!important}
+#overlay{position:absolute;z-index:3;inset:0;background:#1619129c;display:grid;place-items:center}.result{width:min(80%,320px);padding:25px 15px;text-align:center;border:1px solid #af9364;background:#24261ff7}.result h1{margin:0;font:40px "STXingkai","KaiTi",serif}.result p{font-size:15px;color:#d7c8ab;line-height:1.6}.result button{padding:9px 22px;background:#96432e;border:1px solid #cb805a;font-size:18px}
+#stage[data-mode="success"] .result{width:75%;padding:5% 0;border:4px solid #f2cf77;background:#256b50;box-shadow:0 7px 0 #271a16;animation:success-pop .24s ease-out}
+#stage[data-mode="success"] [data-outcome="vip"] .result{background:#ae392a}
+#stage[data-mode="success"] .result h1{color:#fff2c8;font:bold clamp(32px,7vh,66px)/1.1 "Microsoft YaHei",sans-serif;text-shadow:2px 3px #402b22}
+@keyframes success-pop{0%{transform:scale(.88)}60%{transform:scale(1.04)}100%{transform:scale(1)}}
