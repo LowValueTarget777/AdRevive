@@ -37,4 +37,4 @@ LoopInGameThreadWithDelay(33, function()
     guard(function() controller:tick() end)
     if not controller.player then nextPlayerCheck = os.time() + 1 end
 end)
-log("loaded v0.13.2 (HeiMoShang / in-game ADgame)")
+log("loaded v0.13.3 (HeiMoShang / in-game ADgame)")

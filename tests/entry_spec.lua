@@ -359,7 +359,7 @@ local function settle()
 end
 env.require("main")
 worldStart(false,false,false)
-assert(logged("loaded v0.13.2") and next(registered) and ready,table.concat(logs))
+assert(logged("loaded v0.13.3") and next(registered) and ready,table.concat(logs))
 -- A low-HP poll and a check without activation can never create an offer.
 health.CurrentValue=0.005;tick(); assert(not paused and not activeAd)
 -- A map transition during the one-second title must drop the pending offer.
@@ -503,5 +503,20 @@ objects["/Script/PBZAbilityTargetRuntime.Default__PBZPlayerAbilityTargetLibrary"
     IsPlayerInCasterHatredList=function(_,actor)return actor==chief end})
 lethal();window();answer("vip");settle()
 assert(chief.heals==2 and idle.heals==0)
+-- Losing forces native death even if the genuine weapon still has its charge.
+for _,wield in ipairs({false,true}) do
+    worldStart(wield,false,false)
+    local before=deaths
+    lethal();window();answer("failed");tick()
+    assert(deaths==before+1 and committed and not playing and not activeAd and not paused)
+    assert(health.CurrentValue==0 and not ready and chief.heals==2)
+    tick();assert(deaths==before+1 and not activeAd)
+end
+assert(logged("ad result=failed, route=death"))
+worldStart(true,false,false)
+local before=deaths
+lethal();window();activeAd.result="failed"
+endNative(true);tick();tick()
+assert(deaths==before+1 and committed and not paused and not activeAd)
 assert(not logged("native gate error:") and loose==0,table.concat(logs))
 print("Native entry passed: empty weapon array, equip and unequip between polls, same-frame death, repeat rewards, original charges, map travel and native-only healing")

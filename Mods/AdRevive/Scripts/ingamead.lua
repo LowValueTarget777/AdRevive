@@ -43,20 +43,31 @@ function ad.new(dir,log)
     local function finish(s,result)
         local p=s.progress
         local previous=p.seconds
-        p.seconds=0; p.completed=p.completed+1
+        if result=="failed" then
+            s.result=result
+            p.deaths=p.deaths+1
+            p.world=model.newWorld()
+        else
+            p.completed=p.completed+1
+        end
+        p.seconds=0
         local ok,err=pcall(store.save,base,p)
         if not ok then
-            p.seconds=math.min(previous,model.AD_SECONDS-.001); p.completed=p.completed-1
-            log("ADgame save failed: "..tostring(err)); return "closed"
+            log("ADgame save failed: "..tostring(err))
+            if result~="failed" then
+                p.seconds=math.min(previous,model.AD_SECONDS-.001); p.completed=p.completed-1
+                return "closed"
+            end
+            s.retrySave=true
         end
         local shown,frame=pcall(view.showResult,s,result)
         s.result,s.resultElapsed,s.last=result,0,clock()
         if not shown then
-            log("ADgame success banner unavailable: "..tostring(frame))
+            log("ADgame result banner unavailable: "..tostring(frame))
             return result
         end
         s.resultFrame=frame
-        log("ADgame success banner: "..result)
+        log("ADgame result banner: "..result)
     end
     function api.poll(s)
         if not s.host:IsValid() or not s.host:IsInViewport() then return s.result or "closed" end
@@ -95,7 +106,6 @@ function ad.new(dir,log)
         if vipDown and not s.blockVip then s.hold=s.hold+dt end
         local p=s.progress
         local remaining=model.AD_SECONDS-p.seconds
-        if (vipClick or s.hold>=.8) and dt<remaining then return finish(s,"vip") end
         local point=s.layout:GetMousePositionOnViewport(s.pawn)
         local x,y=(point.X-s.x)/s.scale,(point.Y-s.y)/s.scale
         if s.mouseX and (s.mouseX~=x or s.mouseY~=y) and x>=0 and x<=620 and y>=0 and y<=765 then s.aim=x end
@@ -112,12 +122,10 @@ function ad.new(dir,log)
             local step=math.min(1/60,todo)
             model.advance(p.world,step,s.aim,s.feedback,axis)
             todo=todo-step
-            if p.world.hp<=0 then
-                p.deaths=p.deaths+1; p.world=model.newWorld(); s.aim=nil
-                feedback(s,nil,"魂已倒下 · 本段继续计时")
-            end
+            if p.world.hp<=0 then return finish(s,"failed") end
         end
         if credit>=remaining then return finish(s,"completed") end
+        if vipClick or s.hold>=.8 then return finish(s,"vip") end
         p.seconds=p.seconds+credit
         s.autosave=s.autosave+credit
         if s.autosave>=1 then store.save(base,p); s.autosave=0 end
@@ -127,7 +135,7 @@ function ad.new(dir,log)
     function api.discard(s)
         local ok,err=pcall(view.unmount,s)
         if not ok then log("ADgame UI cleanup: "..tostring(err)) end
-        if not s.result then
+        if not s.result or s.retrySave then
             ok,err=pcall(store.save,base,s.progress)
             if not ok then log("ADgame progress write failed: "..tostring(err)) end
         end

@@ -104,6 +104,7 @@ assert(s.progress.seconds==elapsed)
 s.close.widget.click();assert(tick(s)=="closed"); ad.discard(s)
 assert(not pc.bShowMouseCursor and capture==2 and not s.host.mounted)
 s=show();assert(math.abs(s.progress.seconds-elapsed)<1e-6 and not s.paused)
+s.progress.world.nextMob=1000  -- Keep the timer-only case independent of random combat.
 for _=1,590 do assert(not tick(s));if s.result then break end end
 assert(s.timer.value=="00:00" and s.progress.completed==1 and s.progress.seconds==0)
 banner(s,"completed","复活成功!")
@@ -136,7 +137,40 @@ for _,name in ipairs({"Xbox Series X","DualSense"}) do
     banner(s,"vip","充值成功!")
     ad.discard(s); holdButton=false; s=show()
 end
+-- Exercise real combat on the last frame, including a simultaneous VIP click.
+local function shot(w,x,y)
+    w.hostile={{kind="gun",x=x,y=y,vx=0,vy=0,attack=10}}
+    w.guard=0
+end
+s.progress.world=require("adworld").newWorld()
+local w=s.progress.world
+w.allies={{unit=0,hp=1,cool=1}}
+local front=require("adworld").formation(w,0)
+shot(w,front.x,front.y)
+assert(not tick(s) and not s.result and #w.allies==0 and w.hp==100)
+for _,seconds in ipairs({12,29.99}) do
+    w=s.progress.world
+    w.hp=1
+    s.progress.seconds=seconds
+    local completed,deaths=s.progress.completed,s.progress.deaths
+    shot(w,w.x,675)
+    s.vip.widget.click()
+    assert(not tick(s))
+    banner(s,"failed","复活失败!")
+    ad.discard(s); s=show()
+    assert(s.progress.seconds==0 and s.progress.deaths==deaths+1 and s.progress.completed==completed)
+    assert(s.progress.world.time==0 and s.progress.world.hp==100)
+end
+-- A failed write cannot convert a loss into a dismissal with a natural revive.
+local writeSave=save.save
+save.save=function() error("fixture write refused") end
+s.progress.world.hp=1;shot(s.progress.world,s.progress.world.x,675)
+assert(not tick(s));banner(s,"failed","复活失败!")
+save.save=writeSave
+local deaths=s.progress.deaths
+ad.discard(s);s=show()
+assert(s.progress.deaths==deaths and s.progress.seconds==0)
 ad.discard(s)
 for _,suffix in ipairs({"-0.json","-1.json"}) do os.remove(temp..suffix) end
 os.clock=originalClock
-print("Viewport passed: timed and VIP success banners, focus, single settlement, dismissal, continuation and input cleanup")
+print("Viewport passed: timer, VIP, lethal hits, failure banner, fresh run, focus and input cleanup")

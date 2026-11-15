@@ -45,8 +45,11 @@ end
 function Flow:decide(result,reason)
     local t=self.session
     if not t or t.phase~="offer" then return end
-    local paid=result=="completed" or result=="vip"
-    t.phase=paid and "paid" or (t.natural and "natural" or "death")
+    -- Once the minigame is lost, a UI interruption must not spend a natural revive.
+    if t.ticket and t.ticket.result=="failed" then result="failed" end
+    if result=="completed" or result=="vip" then t.phase="paid"
+    elseif result=="closed" and t.natural then t.phase="natural"
+    else t.phase="death" end
     self.log("ad result=" .. result .. ", route=" .. t.phase .. (reason and (", " .. tostring(reason)) or ""))
     if t.ticket then self.ad.discard(t.ticket,reason~=nil); t.ticket=nil end
     if result=="vip" then
