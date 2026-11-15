@@ -359,7 +359,7 @@ local function settle()
 end
 env.require("main")
 worldStart(false,false,false)
-assert(logged("loaded v0.13.3") and next(registered) and ready,table.concat(logs))
+assert(logged("loaded v0.14.0") and next(registered) and ready,table.concat(logs))
 -- A low-HP poll and a check without activation can never create an offer.
 health.CurrentValue=0.005;tick(); assert(not paused and not activeAd)
 -- A map transition during the one-second title must drop the pending offer.

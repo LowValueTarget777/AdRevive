@@ -1,4 +1,5 @@
-import { ALLIES, WEAPONS, SPAWN_POOL, WIDTH, HEIGHT, FLOOR, CARD_X, CARD_Y, FIRST_WAVE_AT, FIRST_BOSS_AT, army, enemyStats, rewardHP, rewardInfo, weaponStats, missileType, BALLISTICS, type Missile, type Tribe } from './rules';
+import { ALLIES, WEAPONS, SPAWN_POOL, WIDTH, HEIGHT, FLOOR, CARD_X, CARD_Y, FIRST_WAVE_AT, FIRST_BOSS_AT, army, enemyStats, rewardHP, weaponStats, missileType, BALLISTICS, type Missile, type Tribe } from './rules';
+import type { WorldNotice } from './worldNotice';
 
 export type Friend = {unit:number; hp:number; cool:number};
 export type Mob = {id:number; tribe:Tribe; unit:number; x:number; y:number; hp:number; max:number; attack:number; speed:number; reload:number};
@@ -11,7 +12,7 @@ export type World = {
   nextMob:number; nextBoss:number; guard:number; fire:number;
 };
 export type Cue='throw'|'hit'|'upgrade'|'hurt'|'win'|'lose';
-export type Feedback=(cue:Cue,text?:string)=>void;
+export type Feedback=(cue:Cue,notice?:WorldNotice)=>void;
 export function random(w:World){
   w.seed=(1664525*w.seed+1013904223)%4294967296;
   return w.seed/4294967296;
@@ -39,9 +40,8 @@ function grant(w:World,reward:number,slot:number|null,feedback:Feedback){
     if(i===slot)w.cards[i]=rollCard(w);
     else updateCardHP(card,max);
   });
-  const name=rewardInfo(reward).short;
-  const stacks=reward>=ALLIES.length?' ×'+w.weapons[reward-ALLIES.length]:'';
-  feedback('upgrade',(slot===null?'首领奖励 · ':'获得 ')+name+stacks);
+  const copies=reward>=ALLIES.length?w.weapons[reward-ALLIES.length]:undefined;
+  feedback('upgrade',{key:slot===null?'bossGain':'gain',id:reward,copies});
 }
 
 export function formation(w:World,index:number){
@@ -116,20 +116,20 @@ function damage(w:World,victim:number,amount:number,feedback:Feedback){
   if(w.guard>0)return;
     if(victim>=0){
       const a=w.allies[victim];a.hp-=amount;
-      if(a.hp<=0){w.allies.splice(victim,1);feedback('hurt',ALLIES[a.unit].short+' 已阵亡');}
-      else feedback('hurt',ALLIES[a.unit].short+' 承伤 −'+amount);
+      if(a.hp<=0){w.allies.splice(victim,1);feedback('hurt',{key:'fallen',id:a.unit});}
+      else feedback('hurt',{key:'allyHit',id:a.unit,amount});
     }else{
       w.hp=Math.max(0,w.hp-amount);
       const owned=w.weapons.reduce((sum,n)=>sum+n,0);
-      let lost='';
+      let lost:number|undefined;
       if(owned>0){
         let ticket=Math.floor(random(w)*owned);
         for(let i=0;i<w.weapons.length;i++){
-          if(ticket<w.weapons[i]){w.weapons[i]--;lost=' · 掉落'+WEAPONS[i].name;break;}
+          if(ticket<w.weapons[i]){w.weapons[i]--;lost=ALLIES.length+i;break;}
           ticket-=w.weapons[i];
         }
       }
-      feedback('hurt','魂 · 气血 −'+amount+lost);
+      feedback('hurt',{key:'heroHit',amount,lost});
     }
   // Enough protection to survive a fan of shots, short enough for a crowd to matter.
   w.guard=.48;
@@ -200,6 +200,6 @@ export function advance(w:World,dt:number,aim:number|null,feedback:Feedback,axis
     for(let i=0;i<wave.count;i++)spawn(w,random(w)<wave.eliteChance?'elite':'scout');
     w.nextMob+=wave.interval;
   }
-  if(w.time>=w.nextBoss){spawn(w,'boss');w.nextBoss+=32;feedback('hit','首领来袭 · 击破得随机奖励');}
+  if(w.time>=w.nextBoss){spawn(w,'boss');w.nextBoss+=32;feedback('hit',{key:'bossArrival'});}
   fire(w,dt,stats,feedback);resolveShots(w,dt,feedback);march(w,dt,feedback);if(w.hp>0)enemyBullets(w,dt,feedback);
 }

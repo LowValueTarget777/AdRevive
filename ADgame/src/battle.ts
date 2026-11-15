@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { textures, type loadArt } from './art';
-import { WIDTH, HEIGHT, FLOOR, CARD_X, CARD_Y, HERO, AD_SECONDS, ENEMIES, ALLIES, rewardInfo, missileType, type Missile } from './rules';
+import { WIDTH, HEIGHT, FLOOR, CARD_X, CARD_Y, HERO, AD_SECONDS, ENEMIES, ALLIES, WEAPONS, rewardInfo, missileType, type Missile } from './rules';
+import { formatNotice, type WorldNotice } from './worldNotice';
 import { advance, formation, newWorld, type Cue } from './world';
 import { loadProgress, saveProgress, SAVE_KEY, type Progress } from './save';
 import { BattleGamepad, type VipKey } from './gamepad';
@@ -11,6 +12,11 @@ export type Snapshot={mode:Mode; outcome?:Outcome; hp:number; left:number; kills
 export type Outcome='completed'|'vip';
 type UI={update:(s:Snapshot)=>void;notice:(s:string)=>void;sound:(cue:Cue)=>void;activateVip:()=>void;finish?:(outcome:Outcome)=>void};
 const serif='"STKaiti","KaiTi","Microsoft YaHei",serif';
+const battleWords={
+  gain:'获得 {name}',bossGain:'首领奖励 · {name}',fallen:'{name} 已阵亡',allyHit:'{name} 承伤 −{n}',
+  heroHit:'魂 · 气血 −{n}',drop:'掉落{name}',bossArrival:'首领来袭 · 击破得随机奖励',
+  names:[...ALLIES.map(a=>a.short),...WEAPONS.map(w=>w.name)],
+};
 
 export class Battle extends Phaser.Scene {
   private mode:Mode='ready';
@@ -142,6 +148,7 @@ export class Battle extends Phaser.Scene {
     this.ui.sound(cue);
     if(message){this.ui.notice(message);this.noticeUntil=performance.now()+1650;}
   };
+  private combatFeedback=(cue:Cue,event?:WorldNotice)=>this.feedback(cue,event && formatNotice(event,battleWords));
   private sync(){
     const w=this.progress.world;
     const s:Snapshot={mode:this.mode,outcome:this.outcome,hp:Math.ceil(w.hp),left:Math.ceil(AD_SECONDS-this.progress.seconds),
@@ -239,7 +246,7 @@ export class Battle extends Phaser.Scene {
     let todo=Math.min(.25,credited);
     while(todo>1e-8){
       const dt=Math.min(1/60,todo);todo-=dt;
-      advance(this.progress.world,dt,this.aim,this.feedback,axis);
+      advance(this.progress.world,dt,this.aim,this.combatFeedback,axis);
       if(this.progress.world.hp<=0){
         this.progress.deaths++;this.progress.world=newWorld();this.aim=null;this.savedAt=-1;
         this.feedback('lose','魂已倒下 · 重开试炼，本次广告继续计时');

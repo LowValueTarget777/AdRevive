@@ -14,6 +14,8 @@ local ink=color(.035,.045,.032)
 local rust=color(.32,.075,.038)
 local gold=color(.82,.63,.33)
 local light=color(.96,.88,.66)
+local vipWidth=252
+local vipX=(620-vipWidth)/2
 local classes={}
 local function widget(s,kind)
     if not valid(classes[kind]) then classes[kind]=asset("/Script/UMG."..kind) end
@@ -45,9 +47,20 @@ local function write(s,label,text)
         label.value=text
     end
 end
+-- Keep the requested font size when possible; shrink longer translations in their slot.
+local function fit(s,child)
+    local wrapper=widget(s,"ScaleBox")
+    wrapper:SetStretch(2) -- ScaleToFit
+    wrapper:SetStretchDirection(1) -- DownOnly
+    wrapper:SetVisibility(3)
+    local slot=wrapper:AddChild(child)
+    slot:SetHorizontalAlignment(2)
+    slot:SetVerticalAlignment(2)
+    return wrapper
+end
 local function caption(s,x,y,w,h,z,size,tint,text)
     local item={widget=label(s,size,tint)}
-    put(s.board,item.widget,x,y,w,h,z)
+    put(s.board,fit(s,item.widget),x,y,w,h,z)
     write(s,item,text)
     return item
 end
@@ -55,12 +68,13 @@ local function button(s,x,y,w,h,content,tint)
     local b=widget(s,"Button")
     b.IsFocusable=false
     b:SetBackgroundColor(tint)
+    local caption
     if type(content)=="string" then
-        local text=label(s,13,light)
-        text:SetText(s.text:Conv_StringToText(content))
-        content=text
+        caption={widget=label(s,13,light)}
+        write(s,caption,content)
+        content=caption.widget
     end
-    b:AddChild(content)
+    b:AddChild(fit(s,content))
     put(s.board,b,x,y,w,h,90)
     -- Slate dispatches a click even if both mouse edges occur between Lua ticks.
     local marker=widget(s,"CanvasPanel")
@@ -68,7 +82,7 @@ local function button(s,x,y,w,h,content,tint)
     put(s.board,marker,0,0,1,1,0)
     marker:AddChild(widget(s,"Border"))
     b.OnClicked:Add(marker,FName("ClearChildren"))
-    return {widget=b,marker=marker}
+    return {widget=b,marker=marker,caption=caption}
 end
 function view.clicked(s,button)
     if button.marker:GetChildrenCount()>0 then return false end
@@ -79,15 +93,14 @@ local function vipButton(s)
     local lines=widget(s,"VerticalBox")
     local small=label(s,5,color(.43,.21,.13))
     small:SetRenderOpacity(.18)
-    small:SetText(s.text:Conv_StringToText("给BOSS"))
+    small:SetText(s.text:Conv_StringToText(s.lang.forBoss))
     lines:AddChildToVerticalBox(small)
     local title=label(s,18,light)
     title.Font.TypefaceFontName=FName("Bold")
-    title:SetText(s.text:Conv_StringToText("充值VIP跳过广告"))
+    title:SetText(s.text:Conv_StringToText(s.lang.vipTitle))
     lines:AddChildToVerticalBox(title)
-    return button(s,206,62,208,47,lines,rust)
+    return button(s,vipX,62,vipWidth,47,lines,rust)
 end
-local resultTitles={completed="复活成功!", vip="充值成功!", failed="复活失败!"}
 function view.showResult(s,outcome)
     s.vip.widget:SetVisibility(1)
     s.close.widget:SetVisibility(1)
@@ -106,14 +119,14 @@ function view.showResult(s,outcome)
     if outcome=="vip" then tint=color(.64,.065,.029)
     elseif outcome=="failed" then tint=color(.25,.018,.025) end
     face:SetBrushColor(tint)
-    face:SetHorizontalAlignment(2)
-    face:SetVerticalAlignment(2)
+    face:SetHorizontalAlignment(0) -- Give the ScaleBox the whole banner.
+    face:SetVerticalAlignment(0)
     local headline=label(s,47,light)
     headline.Font.TypefaceFontName=FName("Bold")
     headline:SetShadowOffset(v(2,3))
     headline:SetShadowColorAndOpacity(ink)
-    headline:SetText(s.text:Conv_StringToText(resultTitles[outcome]))
-    face:AddChild(headline)
+    headline:SetText(s.text:Conv_StringToText(s.lang[outcome]))
+    face:AddChild(fit(s,headline))
     frame:AddChild(face)
     frame:SetRenderScale(v(.88,.88))
     put(s.board,frame,78,321,464,123,111)
@@ -145,10 +158,10 @@ local function padKey(s)
     if valid(s.devices) then
         local hw=s.devices:GetMostRecentlyUsedHardwareDevice(s.pc:GetPlatformUserId())
         if hw and hw.PrimaryDeviceType==2 then
-            return keyFor(hw.HardwareDeviceIdentifier) or keyFor(hw.InputClassName) or "右侧键"
+            return keyFor(hw.HardwareDeviceIdentifier) or keyFor(hw.InputClassName) or s.lang.right
         end
     end
-    if valid(s.commonInput) then return "右侧键" end
+    if valid(s.commonInput) then return s.lang.right end
 end
 local function tex(s,name)
     local t=s.textures[name]
@@ -207,8 +220,8 @@ function view.draw(s,p,left,paused,vipHold,notice)
     for i,c in ipairs(w.cards) do
         local reward=model.rewardInfo(c.reward)
         local x=(i==1 and 76 or 226)
-        write(s,s.cardNames[i],reward.short)
-        write(s,s.cardTypes[i],reward.kind)
+        write(s,s.cardNames[i],s.lang.names[c.reward+1])
+        write(s,s.cardTypes[i],c.reward<#model.ALLIES and s.lang.ally or s.lang.weapon)
         write(s,s.cardHP[i],tostring(math.ceil(c.hp)))
         sprite(s,reward.name,x,286,64,22)
         bar(s,x-32,378,64*c.hp/c.max,3,gold)
@@ -241,17 +254,18 @@ function view.draw(s,p,left,paused,vipHold,notice)
     end
     local gear=0
     for _,n in ipairs(w.weapons) do gear=gear+n end
-    write(s,s.timer,paused and "已暂停" or string.format("00:%02d",left))
-    write(s,s.hud,string.format("气血 %d       队友 %d       武器 %d       击破 %d",math.ceil(w.hp),#w.allies,gear,w.kills))
+    write(s,s.timer,paused and s.lang.paused or string.format("00:%02d",left))
+    write(s,s.pause.caption,paused and s.lang.resume or s.lang.pause)
+    write(s,s.hud,string.format(s.lang.hud,math.ceil(w.hp),#w.allies,gear,w.kills))
     write(s,s.noticeLabel,notice or "")
     local key
     if not paused then key=padKey(s) end
     if key~=s.hintKey then
-        if key then write(s,s.vipHint,"长按 "..key) end
+        if key then write(s,s.vipHint,string.format(s.lang.hold,key)) end
         s.hintBox:SetVisibility(key and 3 or 1)
         s.hintKey=key
     end
-    s.holdBar:SetSize(v(208*math.min(1,vipHold/.8),3))
+    s.holdBar:SetSize(v(vipWidth*math.min(1,vipHold/.8),3))
 end
 function view.mount(s)
     s.ui=asset("/Script/UMG.Default__WidgetBlueprintLibrary")
@@ -277,6 +291,8 @@ function view.mount(s)
     local ground=widget(s,"Image")
     ground:SetBrushFromTexture(tex(s,"ground"),false)
     ground:SetVisibility(3); put(s.board,ground,0,0,620,765,0)
+    caption(s,101,19,108,34,3,19,ink,s.lang.upgrade)
+    caption(s,411,19,108,34,3,19,rust,s.lang.fight)
     s.cardNames,s.cardHP,s.cardTypes={},{},{}
     for i,x in ipairs({76,226}) do
         box(s,x-53,231,106,124,10,ink)
@@ -285,19 +301,19 @@ function view.mount(s)
         s.cardHP[i]=caption(s,x-50,354,100,24,35,15,ink,"")
     end
     box(s,249,0,122,59,60,ink)
-    caption(s,249,3,122,19,70,12,gold,"广告剩余")
+    caption(s,249,3,122,19,70,12,gold,s.lang.adTime)
     s.timer=caption(s,249,21,122,37,70,24,light,"")
     s.vip=vipButton(s)
-    s.holdBar=box(s,206,106,0,3,91,gold)
+    s.holdBar=box(s,vipX,106,0,3,91,gold)
     s.hintBox=widget(s,"Border")
     s.hintBox:SetBrushColor(ink)
     s.hintBox:SetVisibility(1)
     s.vipHint={widget=label(s,11,light)}
-    s.hintBox:AddChild(s.vipHint.widget)
+    s.hintBox:AddChild(fit(s,s.vipHint.widget))
     s.hintBox:SetVerticalAlignment(2) -- Center
-    put(s.board,s.hintBox,420,74,84,24,90)
-    s.close=button(s,514,7,100,35,"关闭广告",ink)
-    s.pause=button(s,6,7,86,35,"暂停 / 继续",ink)
+    put(s.board,s.hintBox,vipX+vipWidth+6,74,170,24,90)
+    s.close=button(s,514,7,100,35,s.lang.close,ink)
+    s.pause=button(s,6,7,86,35,s.lang.pause,ink)
     box(s,0,734,620,31,60,ink)
     s.hud=caption(s,0,737,620,28,70,15,light,"")
     s.noticeLabel=caption(s,12,593,596,36,70,16,ink,"")

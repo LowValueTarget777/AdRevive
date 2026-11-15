@@ -1,6 +1,7 @@
 local model=require("adworld")
 local store=require("adstore")
 local view=require("adview")
+local language=require("adlanguage")
 local ad={}
 local RESULT_SECONDS=1.5
 local keys={}
@@ -17,8 +18,8 @@ end
 local function draw(s)
     view.draw(s,s.progress,math.ceil(model.AD_SECONDS-s.progress.seconds),s.paused,s.hold,s.notice)
 end
-local function feedback(s,_,message)
-    if message then s.notice=message; s.noticeUntil=s.last+1.7 end
+local function feedback(s,_,event)
+    if event then s.notice=model.formatNotice(event,s.lang); s.noticeUntil=s.last+1.7 end
 end
 function ad.new(dir,log)
     local base=assert(os.getenv("LOCALAPPDATA")).."\\PBZ\\AdRevive\\battle"
@@ -26,6 +27,9 @@ function ad.new(dir,log)
     function api.open(pawn)
         local s={dir=dir,pawn=pawn,pc=pawn.Controller,hold=0,autosave=0}
         local ok,err=pcall(function()
+            local id,source
+            s.lang,id,source=language.current()
+            log("ADgame text language="..id.." ("..source..")")
             s.progress=store.open(base,model.newWorld)
             view.mount(s)
             s.last=clock()

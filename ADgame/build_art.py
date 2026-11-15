@@ -1,7 +1,6 @@
 """Bake the original ADgame art into textures supported by UE's runtime image importer."""
 from pathlib import Path
-from PIL import Image, ImageDraw, ImageFont
-import os
+from PIL import Image, ImageDraw
 
 root = Path(__file__).resolve().parent
 mod = root.parent / "Mods" / "AdRevive"
@@ -34,9 +33,7 @@ draw.rectangle((0,0,309,764),fill=(202,166,97,18))
 draw.rectangle((310,0,619,764),fill=(164,87,69,16))
 for y in range(53,630,15): draw.line((310,y,310,y+6),fill=(103,94,72,140))
 for x in range(18,602,12): draw.line((x,640,x+3,640),fill=(99,87,65,104))
-font = ImageFont.truetype(str(Path(os.environ["WINDIR"]) / "Fonts/simkai.ttf"), 24)
-for x, title in [(155,"强 化"),(465,"迎 敌")]:
+for x in (155,465):
     draw.rectangle((x-54,18,x+54,55),fill=(230,219,190,212))
     draw.line((x-54,55,x+54,55),fill="#816e50",width=2)
-    draw.text((x,37),title,anchor="mm",font=font,fill="#58503a")
 paper.save(out / "ground.png", optimize=True)

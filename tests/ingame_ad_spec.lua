@@ -12,7 +12,7 @@ local function obj(kind)
         HasUserFocus=function() return false end,HasUserFocusedDescendants=function() return false end}
     for _,n in ipairs({"SetBrushColor","SetColorAndOpacity","SetJustification","SetBackgroundColor","SetVerticalAlignment","SetClipping",
             "SetRenderScale","SetRenderTransformPivot","SetPosition","SetSize","SetZOrder","SetBrushFromTexture",
-            "SetPadding","SetShadowOffset","SetShadowColorAndOpacity","SetHorizontalAlignment"}) do o[n]=noop end
+            "SetPadding","SetShadowOffset","SetShadowColorAndOpacity","SetHorizontalAlignment","SetStretch","SetStretchDirection"}) do o[n]=noop end
     function o:SetRenderOpacity(a) self.opacity=a end
     function o:SetVisibility(v) self.visibility=v end
     function o:SetText(t) self.value=t end
@@ -30,7 +30,9 @@ local inputType,padName,hardware,holdButton=0,"Xbox",{PrimaryDeviceType=1},false
 local common={IsValid=valid,GetCurrentInputType=function() return inputType end,
     GetCurrentGamepadName=function() return {ToString=function() return padName end} end}
 local deviceSubsystem={IsValid=valid,GetMostRecentlyUsedHardwareDevice=function(_,id) assert(id==9);return hardware end}
+local culture="zh-Hans-CN"
 local libs={
+    KismetInternationalizationLibrary={GetCurrentLanguage=function() return {ToString=function() return culture end} end},
     WidgetBlueprintLibrary={Create=function() return obj("Host") end, SetFocusToGameViewport=noop,
         SetInputMode_GameAndUIEx=noop,SetInputMode_GameOnly=noop},
     SubsystemBlueprintLibrary={
@@ -81,7 +83,7 @@ local function tick(s)
     return ad.poll(s)
 end
 local function banner(s,result,title)
-    assert(s.result==result and s.resultFrame.children[1].children[1].value==title)
+    assert(s.result==result and s.resultFrame.children[1].children[1].children[1].value==title)
     assert(s.vip.widget.visibility==1 and s.close.widget.visibility==1 and s.pause.widget.visibility==1)
     local worldTime,completed,sequence=s.progress.world.time,s.progress.completed,s.progress.sequence
     focused=false; now=now+2; assert(not tick(s) and s.resultElapsed==0)
@@ -114,7 +116,7 @@ assert(math.abs(s.progress.world.time-oldTime)<1e-6)
 s.vip.widget.click();assert(not tick(s));banner(s,"vip","充值成功!")
 ad.discard(s);s=show()
 assert(s.progress.completed==2 and s.progress.seconds==0)
-local lines=s.vip.widget.children[1].children
+local lines=s.vip.widget.children[1].children[1].children
 assert(#lines==2 and lines[1].value=="给BOSS" and lines[2].value=="充值VIP跳过广告")
 assert(lines[1].Font.Size==5 and lines[1].opacity<.2 and lines[2].Font.Size==18 and s.hintBox.visibility==1)
 inputType=1;tick(s);assert(s.hintBox.visibility==3 and s.vipHint.value=="长按 B")
@@ -170,6 +172,16 @@ save.save=writeSave
 local deaths=s.progress.deaths
 ad.discard(s);s=show()
 assert(s.progress.deaths==deaths and s.progress.seconds==0)
+ad.discard(s)
+culture="en-us";s=show()
+assert(s.lang.completed=="Revived!" and s.close.caption.value=="Close ad")
+s.pause.widget.click();tick(s);assert(s.pause.caption.value=="Resume" and s.timer.value=="Paused")
+s.pause.widget.click();tick(s)
+s.feedback("hurt",{key="heroHit",amount=8,lost=11});tick(s)
+assert(s.noticeLabel.value=="Soul lost 8 HP · Dropped Dark Wound")
+s.vip.widget.click();assert(not tick(s));banner(s,"vip","Top-up successful!");ad.discard(s)
+culture="ja-JP";s=show()
+assert(s.close.caption.value=="広告を閉じる" and s.progress.deaths==deaths)
 ad.discard(s)
 for _,suffix in ipairs({"-0.json","-1.json"}) do os.remove(temp..suffix) end
 os.clock=originalClock

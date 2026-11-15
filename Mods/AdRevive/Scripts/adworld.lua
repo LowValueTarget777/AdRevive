@@ -3260,6 +3260,32 @@ ____exports.BALLISTICS = {music = {
 }}
 return ____exports
  end,
+["src.worldNotice"] = function(...) 
+local ____lualib = require("lualib_bundle")
+local __TS__StringReplace = ____lualib.__TS__StringReplace
+local ____exports = {}
+function ____exports.formatNotice(event, words)
+    local text = words[event.key]
+    if event.id ~= nil then
+        text = __TS__StringReplace(text, "{name}", words.names[event.id + 1])
+    end
+    if event.amount ~= nil then
+        text = __TS__StringReplace(
+            text,
+            "{n}",
+            tostring(event.amount)
+        )
+    end
+    if event.copies ~= nil and event.copies ~= nil then
+        text = text .. " ×" .. tostring(event.copies)
+    end
+    if event.key == "heroHit" and event.lost ~= nil then
+        text = text .. " · " .. __TS__StringReplace(words.drop, "{name}", words.names[event.lost + 1])
+    end
+    return text
+end
+return ____exports
+ end,
 ["src.world"] = function(...) 
 local ____lualib = require("lualib_bundle")
 local __TS__ArrayMap = ____lualib.__TS__ArrayMap
@@ -3285,7 +3311,6 @@ local FIRST_BOSS_AT = ____rules.FIRST_BOSS_AT
 local army = ____rules.army
 local enemyStats = ____rules.enemyStats
 local rewardHP = ____rules.rewardHP
-local rewardInfo = ____rules.rewardInfo
 local weaponStats = ____rules.weaponStats
 local missileType = ____rules.missileType
 local BALLISTICS = ____rules.BALLISTICS
@@ -3357,9 +3382,8 @@ local function grant(w, reward, slot, feedback)
             end
         end
     )
-    local name = rewardInfo(reward).short
-    local stacks = reward >= #ALLIES and " ×" .. tostring(w.weapons[reward - #ALLIES + 1]) or ""
-    feedback("upgrade", ((slot == nil and "首领奖励 · " or "获得 ") .. name) .. stacks)
+    local copies = reward >= #ALLIES and w.weapons[reward - #ALLIES + 1] or nil
+    feedback("upgrade", {key = slot == nil and "bossGain" or "gain", id = reward, copies = copies})
 end
 function ____exports.formation(w, index)
     local slot = index < 4 and ({1, 3, 0, 4})[index + 1] or (index - 4) % 5
@@ -3536,12 +3560,9 @@ local function damage(w, victim, amount, feedback)
         a.hp = a.hp - amount
         if a.hp <= 0 then
             __TS__ArraySplice(w.allies, victim, 1)
-            feedback("hurt", ALLIES[a.unit + 1].short .. " 已阵亡")
+            feedback("hurt", {key = "fallen", id = a.unit})
         else
-            feedback(
-                "hurt",
-                (ALLIES[a.unit + 1].short .. " 承伤 −") .. tostring(amount)
-            )
+            feedback("hurt", {key = "allyHit", id = a.unit, amount = amount})
         end
     else
         w.hp = math.max(0, w.hp - amount)
@@ -3550,7 +3571,7 @@ local function damage(w, victim, amount, feedback)
             function(____, sum, n) return sum + n end,
             0
         )
-        local lost = ""
+        local lost
         if owned > 0 then
             local ticket = math.floor(____exports.random(w) * owned)
             do
@@ -3559,7 +3580,7 @@ local function damage(w, victim, amount, feedback)
                     if ticket < w.weapons[i + 1] then
                         local ____w_weapons_9, ____temp_10 = w.weapons, i + 1
                         ____w_weapons_9[____temp_10] = ____w_weapons_9[____temp_10] - 1
-                        lost = " · 掉落" .. WEAPONS[i + 1].name
+                        lost = #ALLIES + i
                         break
                     end
                     ticket = ticket - w.weapons[i + 1]
@@ -3567,10 +3588,7 @@ local function damage(w, victim, amount, feedback)
                 end
             end
         end
-        feedback(
-            "hurt",
-            ("魂 · 气血 −" .. tostring(amount)) .. lost
-        )
+        feedback("hurt", {key = "heroHit", amount = amount, lost = lost})
     end
     w.guard = 0.48
 end
@@ -3711,7 +3729,7 @@ function ____exports.advance(w, dt, aim, feedback, axis)
     if w.time >= w.nextBoss then
         ____exports.spawn(w, "boss")
         w.nextBoss = w.nextBoss + 32
-        feedback("hit", "首领来袭 · 击破得随机奖励")
+        feedback("hit", {key = "bossArrival"})
     end
     fire(w, dt, stats, feedback)
     resolveShots(w, dt, feedback)
@@ -3730,6 +3748,10 @@ do
     ____exports.newWorld = ____world.newWorld
     ____exports.advance = ____world.advance
     ____exports.formation = ____world.formation
+end
+do
+    local ____worldNotice = require("src.worldNotice")
+    ____exports.formatNotice = ____worldNotice.formatNotice
 end
 do
     local ____rules = require("src.rules")
