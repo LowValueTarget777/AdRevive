@@ -54,6 +54,7 @@ env.os = {time=function() return 1000+math.floor(clock) end,clock=function() ret
 env.package={loadlib=function() error("unexpected external launcher") end}
 modules.ingamead={new=function()
     return {
+        prepare=function() step("prepare ad save") end,
         open=function(pawn)
             assert(paused and pawn and not activeAd)
             activeAd={}; lastAd=activeAd
@@ -359,7 +360,7 @@ local function settle()
 end
 env.require("main")
 worldStart(false,false,false)
-assert(logged("loaded v0.14.0") and next(registered) and ready,table.concat(logs))
+assert(logged("loaded v0.14.1") and order[1]=="prepare ad save" and next(registered) and ready,table.concat(logs))
 -- A low-HP poll and a check without activation can never create an offer.
 health.CurrentValue=0.005;tick(); assert(not paused and not activeAd)
 -- A map transition during the one-second title must drop the pending offer.

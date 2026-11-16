@@ -22,15 +22,43 @@ local function feedback(s,_,event)
     if event then s.notice=model.formatNotice(event,s.lang); s.noticeUntil=s.last+1.7 end
 end
 function ad.new(dir,log)
-    local base=assert(os.getenv("LOCALAPPDATA")).."\\PBZ\\AdRevive\\battle"
+    local base=dir.."\\Save\\battle"
     local api={}
+    local progress,writeError,protectExistingSave
+    local function persist()
+        if protectExistingSave then return false end
+        local ok,why=pcall(store.save,base,progress)
+        if not ok and not writeError then
+            log("ADgame save unavailable; keeping progress in memory: "..tostring(why))
+        elseif ok and writeError then
+            log("ADgame save writes resumed")
+        end
+        writeError=not ok
+        return ok
+    end
+    function api.prepare()
+        if progress then return progress end
+        local ok,saved=pcall(store.read,base)
+        if ok and saved then
+            progress=saved
+            return progress
+        end
+        progress={version=2,sequence=0,seconds=0,completed=0,deaths=0,world=model.newWorld()}
+        if ok then
+            persist()
+        else
+            protectExistingSave=true
+            log("ADgame save unreadable; using session-only progress to preserve existing files: "..tostring(saved))
+        end
+        return progress
+    end
     function api.open(pawn)
         local s={dir=dir,pawn=pawn,pc=pawn.Controller,hold=0,autosave=0}
         local ok,err=pcall(function()
             local id,source
             s.lang,id,source=language.current()
             log("ADgame text language="..id.." ("..source..")")
-            s.progress=store.open(base,model.newWorld)
+            s.progress=api.prepare()
             view.mount(s)
             s.last=clock()
             s.active=focused(s)
@@ -46,7 +74,6 @@ function ad.new(dir,log)
     end
     local function finish(s,result)
         local p=s.progress
-        local previous=p.seconds
         if result=="failed" then
             s.result=result
             p.deaths=p.deaths+1
@@ -55,15 +82,7 @@ function ad.new(dir,log)
             p.completed=p.completed+1
         end
         p.seconds=0
-        local ok,err=pcall(store.save,base,p)
-        if not ok then
-            log("ADgame save failed: "..tostring(err))
-            if result~="failed" then
-                p.seconds=math.min(previous,model.AD_SECONDS-.001); p.completed=p.completed-1
-                return "closed"
-            end
-            s.retrySave=true
-        end
+        s.retrySave=not persist()
         local shown,frame=pcall(view.showResult,s,result)
         s.result,s.resultElapsed,s.last=result,0,clock()
         if not shown then
@@ -82,7 +101,7 @@ function ad.new(dir,log)
         if not s.result and view.clicked(s,s.close) then return "closed" end
         if not focused(s) then
             if s.active then
-                if not s.result then store.save(base,s.progress) end
+                if not s.result then persist() end
                 s.active=false; s.hold=0; s.blockVip=true
             end
             return
@@ -100,7 +119,7 @@ function ad.new(dir,log)
         local pauseKey=down(s,"P") or down(s,"Gamepad_Special_Right")
         if view.clicked(s,s.pause) or (pauseKey and not s.pauseKey) then
             s.paused=not s.paused; s.hold=0; dt=0
-            if s.paused then store.save(base,s.progress) end
+            if s.paused then persist() end
         end
         s.pauseKey=pauseKey
         local vipClick=view.clicked(s,s.vip)
@@ -132,7 +151,7 @@ function ad.new(dir,log)
         if vipClick or s.hold>=.8 then return finish(s,"vip") end
         p.seconds=p.seconds+credit
         s.autosave=s.autosave+credit
-        if s.autosave>=1 then store.save(base,p); s.autosave=0 end
+        if s.autosave>=1 then persist(); s.autosave=0 end
         if s.noticeUntil and now>=s.noticeUntil then s.notice,s.noticeUntil=nil,nil end
         draw(s)
     end
@@ -140,8 +159,7 @@ function ad.new(dir,log)
         local ok,err=pcall(view.unmount,s)
         if not ok then log("ADgame UI cleanup: "..tostring(err)) end
         if not s.result or s.retrySave then
-            ok,err=pcall(store.save,base,s.progress)
-            if not ok then log("ADgame progress write failed: "..tostring(err)) end
+            persist()
         end
     end
     return api

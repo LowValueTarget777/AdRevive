@@ -235,17 +235,7 @@ try {
     $saved = Join-Path $work 'install.json'
     $entries = @(foreach ($name in ($owned.Keys | Sort-Object)) { @{path=$name; sha256=$owned[$name]} })
     $dirs = @(($oldDirs + $createdDirs.ToArray()) | Sort-Object -Unique)
-    $json = @{format='AdRevive/1'; version='0.14.0'; files=$entries; directories=$dirs} | ConvertTo-Json -Depth 4
-    $profile = Join-Path $env:LOCALAPPDATA 'PBZ\AdRevive'
-    [void][IO.Directory]::CreateDirectory($profile)
-    if ((Test-Path -LiteralPath (Join-Path $profile 'Profile\EBWebView\Default\Local Storage\leveldb\CURRENT')) -and
-        !(Test-Path -LiteralPath (Join-Path $profile 'battle-0.json')) -and
-        !(Test-Path -LiteralPath (Join-Path $profile 'battle-1.json'))) {
-        $importer = Join-Path $PSScriptRoot 'Ad\MigrateProgress.exe'
-        if (-not [IO.File]::Exists($importer)) { throw 'Run Ad\build.ps1 to build the legacy save importer, then retry.' }
-        & $importer $profile
-        if ($LASTEXITCODE -ne 0) { throw 'Could not import the previous ADgame progress. Close its preview window and retry.' }
-    }
+    $json = @{format='AdRevive/1'; version='0.14.1'; files=$entries; directories=$dirs} | ConvertTo-Json -Depth 4
     [IO.File]::WriteAllText($saved, $json)
     ChangeFile $receipt $saved
     if ($nowRunning) { Write-Output "AdRevive scripts prepared for the next game start in $(Join-Path $bin $mod)" }

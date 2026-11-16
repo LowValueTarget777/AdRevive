@@ -8,15 +8,16 @@
 
 | 你的游戏目录 | 下载文件 |
 | --- | --- |
-| 首次安装 UE4SS | `AdRevive-0.13.2-with-UE4SS.zip`（内含适配 PBZ 的 UE4SS 4.0.0） |
-| 已装适配 PBZ 的 UE4SS 4.0.0，或已有其他 UE4SS MOD | `AdRevive-0.13.2-mod-only.zip` |
+| 首次安装 UE4SS | `AdRevive-0.14.1-with-UE4SS.zip`（内含适配 PBZ 的 UE4SS 4.0.0） |
+| 已装适配 PBZ 的 UE4SS 4.0.0，或已有其他 UE4SS MOD | `AdRevive-0.14.1-mod-only.zip` |
 
 1. 退出游戏并解压 ZIP。在 Steam 库里右键《影之刃零》，选择「管理 → 浏览本地文件」。
 2. 将解压出的 `platform` 文件夹复制到游戏根目录，与原有的 `platform` 合并。安装后应能找到 `platform/steam/ue4ss/Mods/AdRevive/Scripts/main.lua`。
-3. 从 Steam 正常启动游戏。在 `platform/steam/ue4ss/UE4SS.log` 中找到本次启动的 `[AdRevive] loaded v0.13.2` 就表示已加载。
+3. 从 Steam 正常启动游戏。在 `platform/steam/ue4ss/UE4SS.log` 中找到本次启动的 `[AdRevive] loaded v0.14.1` 就表示已加载。
 
-手动卸载时，退出游戏并移除 `platform/steam/ue4ss/Mods/AdRevive`。这会保留共享的 UE4SS，游戏存档和小游戏进度也会保留。若最初使用了含加载器包，想一并卸掉它，可以用源码仓库里的 `Install.ps1 -GameRoot '游戏根目录' -Uninstall` 按清单清理。
+首次加载 MOD 时，会自动在 `platform/steam/ue4ss/Mods/AdRevive/Save` 创建小游戏存档。从 v0.14.0 升级后，小游戏从新一局开始。
 
+手动卸载时，先退出游戏。如需保留小游戏进度，先备份 MOD 目录中的 `Save` 文件夹，再移除 `platform/steam/ue4ss/Mods/AdRevive`。这会保留共享的 UE4SS 和游戏本体存档。若最初使用了含加载器包，想一并卸掉它，可以用源码仓库里的 `Install.ps1 -GameRoot '游戏根目录' -Uninstall` 按清单清理。
 
 ## 独立试玩
 

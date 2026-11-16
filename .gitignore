@@ -1,6 +1,7 @@
 # Local build and publication output
 /dist/
 /backups/
+/Mods/AdRevive/Save/
 node_modules/
 .playwright-cli/
 output/

@@ -16,6 +16,8 @@ end
 controller = flow.new(g, ad, log, require("deathui"))
 RegisterLoadMapPreHook(function() controller:reset() end)
 ExecuteInGameThread(function()
+    local ok,why=pcall(ad.prepare)
+    if not ok then log("ADgame save initialization: "..tostring(why)) end
     require("deathwatch").install(g, function(p, kind)
         if kind == "checkpoint" then controller:checkpoint(p) end
     end, log, function() return controller.player end)
@@ -37,4 +39,4 @@ LoopInGameThreadWithDelay(33, function()
     guard(function() controller:tick() end)
     if not controller.player then nextPlayerCheck = os.time() + 1 end
 end)
-log("loaded v0.14.0 (HeiMoShang / in-game ADgame)")
+log("loaded v0.14.1 (HeiMoShang / in-game ADgame)")

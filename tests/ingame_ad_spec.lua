@@ -70,9 +70,28 @@ local ad=require("ingamead").new(dir,function(l) logs[#logs+1]=l end)
 local save=require("adstore")
 local temp=os.tmpname()
 os.remove(temp)
-local open,saveTo=save.open,save.save
-save.open=function(_,newWorld) return open(temp,newWorld) end
-save.save=function(_,p) return saveTo(temp,p) end
+local read,saveTo=save.read,save.save
+local expectedBase=dir.."\\Save\\battle"
+save.read=function(base) assert(base==expectedBase);return read(temp) end
+save.save=function(base,p) assert(base==expectedBase);return saveTo(temp,p) end
+-- A manual ZIP install has no Save directory before the first game-thread tick.
+local rawOpen,find=io.open,StaticFindObject
+local missingDirectory=true
+io.open=function(path,mode)
+    if missingDirectory and path==temp.."-1.json.tmp" and mode=="wb" then
+        return nil,"missing Save directory",2
+    end
+    return rawOpen(path,mode)
+end
+StaticFindObject=function(path)
+    assert(path=="/Script/EasyCsv.Default__EasyCsv")
+    return {IsValid=valid,SaveStringToFileWithFullPath=function(_,_,path)
+        assert(path==temp.."-1.json.tmp");missingDirectory=false;return true
+    end}
+end
+assert(ad.prepare().sequence==1 and read(temp).seconds==0)
+assert(not missingDirectory)
+io.open,StaticFindObject=rawOpen,find
 local function show()
     local s,why=ad.open(pawn)
     assert(s,why);assert(pc.bShowMouseCursor and capture==0 and s.host.mounted)
@@ -166,12 +185,17 @@ end
 -- A failed write cannot convert a loss into a dismissal with a natural revive.
 local writeSave=save.save
 save.save=function() error("fixture write refused") end
+for _=1,23 do assert(not tick(s)) end -- The one-second autosave must not close the ad.
+s.progress.seconds=29.99
+assert(not tick(s));banner(s,"completed","复活成功!");ad.discard(s);s=show()
+s.vip.widget.click();assert(not tick(s));banner(s,"vip","充值成功!");ad.discard(s);s=show()
 s.progress.world.hp=1;shot(s.progress.world,s.progress.world.x,675)
 assert(not tick(s));banner(s,"failed","复活失败!")
 save.save=writeSave
 local deaths=s.progress.deaths
 ad.discard(s);s=show()
 assert(s.progress.deaths==deaths and s.progress.seconds==0)
+assert(read(temp).deaths==deaths,"a later write must persist the in-memory progress")
 ad.discard(s)
 culture="en-us";s=show()
 assert(s.lang.completed=="Revived!" and s.close.caption.value=="Close ad")
@@ -183,6 +207,21 @@ s.vip.widget.click();assert(not tick(s));banner(s,"vip","Top-up successful!");ad
 culture="ja-JP";s=show()
 assert(s.close.caption.value=="広告を閉じる" and s.progress.deaths==deaths)
 ad.discard(s)
+local last=read(temp)
+local restarted=require("ingamead").new(dir,function() end)
+local restored=restarted.prepare()
+assert(restored.sequence==last.sequence and restored.completed==last.completed and restored.deaths==last.deaths)
+save.read=function() error("fixture unreadable save") end
+local attemptedWrites=0
+save.save=function() attemptedWrites=attemptedWrites+1 end
+local warned={}
+local protected=require("ingamead").new(dir,function(line) warned[#warned+1]=line end)
+local isolated=assert(protected.open(pawn))
+for _=1,24 do now=now+.05;assert(not protected.poll(isolated)) end
+isolated.vip.widget.click();assert(not protected.poll(isolated))
+protected.discard(isolated)
+assert(isolated.result=="vip" and attemptedWrites==0 and read(temp).sequence==last.sequence
+    and table.concat(warned):find("unreadable",1,true))
 for _,suffix in ipairs({"-0.json","-1.json"}) do os.remove(temp..suffix) end
 os.clock=originalClock
 print("Viewport passed: timer, VIP, lethal hits, failure banner, fresh run, focus and input cleanup")
